@@ -91,10 +91,10 @@ export const RequestDetailDrawer = ({ request, open, onClose }: RequestDetailDra
                 <div
                   key={idx}
                   className={cn(
-                    'p-3 rounded-lg text-sm',
+                    'p-3 rounded-2xl text-sm',
                     idx % 2 === 0
-                      ? 'bg-muted ml-0 mr-4'
-                      : 'bg-primary/10 ml-4 mr-0'
+                      ? 'glass-card ml-0 mr-4'
+                      : 'bg-primary/20 backdrop-blur-xl border border-primary/30 ml-4 mr-0'
                   )}
                 >
                   <p className="text-xs text-muted-foreground mb-1">
@@ -112,7 +112,7 @@ export const RequestDetailDrawer = ({ request, open, onClose }: RequestDetailDra
               <Brain className="w-4 h-4" />
               Memory & Notes
             </h3>
-            <div className="bg-accent/50 rounded-lg p-4">
+            <div className="glass-card p-4 rounded-2xl">
               <ul className="space-y-2">
                 {request.memory.map((note, idx) => (
                   <li key={idx} className="text-sm flex items-start gap-2">

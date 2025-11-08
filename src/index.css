@@ -115,3 +115,22 @@ All colors MUST be HSL.
     @apply bg-background text-foreground;
   }
 }
+
+@layer utilities {
+  /* Glass Morphism Utilities */
+  .glass {
+    @apply bg-white/10 backdrop-blur-xl border border-white/20 shadow-2xl;
+  }
+  
+  .glass-card {
+    @apply bg-white/70 dark:bg-slate-900/70 backdrop-blur-2xl border border-white/30 dark:border-white/10 shadow-2xl rounded-3xl;
+  }
+  
+  .glass-input {
+    @apply bg-white/50 dark:bg-slate-900/50 backdrop-blur-xl border border-white/30 dark:border-white/20 rounded-2xl;
+  }
+  
+  .glass-button {
+    @apply bg-primary/80 backdrop-blur-xl border border-white/30 shadow-lg hover:bg-primary/90 transition-all duration-300 rounded-2xl;
+  }
+}

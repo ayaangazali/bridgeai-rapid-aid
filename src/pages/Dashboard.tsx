@@ -100,22 +100,26 @@ const Dashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-gradient-to-br from-cyan-50 via-blue-50 to-teal-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 pb-20 relative overflow-hidden">
+      {/* Animated background */}
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,rgba(56,189,248,0.1),transparent_50%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_80%,rgba(14,165,233,0.1),transparent_50%)]" />
+
       {/* Header */}
-      <header className="bg-card border-b border-border sticky top-0 z-40">
-        <div className="container mx-auto px-4 py-4">
+      <header className="glass-card mx-4 mt-4 mb-4 sticky top-4 z-40">
+        <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-4">
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => navigate('/')}
-                className="gap-2"
+                className="gap-2 hover:bg-white/50 dark:hover:bg-slate-800/50"
               >
                 <ArrowLeft className="w-4 h-4" />
                 Back
               </Button>
-              <h1 className="text-2xl font-bold text-primary">BridgeAI</h1>
+              <h1 className="text-2xl font-bold text-primary">BridgeAI Dashboard</h1>
             </div>
             <FilterBar
               activeFilter={activeFilter}
@@ -126,10 +130,10 @@ const Dashboard = () => {
       </header>
 
       {/* Main Content */}
-      <div className="container mx-auto px-4 py-6">
+      <div className="container mx-auto px-4 py-6 relative z-10">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[calc(100vh-180px)]">
           {/* Map Column */}
-          <div className="h-full min-h-[400px]">
+          <div className="h-full min-h-[400px] glass-card p-4 overflow-hidden">
             <MapView
               requests={filteredRequests}
               resources={seedResources}
@@ -141,7 +145,7 @@ const Dashboard = () => {
           {/* Requests Column */}
           <div className="h-full overflow-y-auto space-y-4 pr-2">
             {filteredRequests.length === 0 ? (
-              <div className="flex items-center justify-center h-full">
+              <div className="flex items-center justify-center h-full glass-card">
                 <p className="text-muted-foreground">No requests match this filter</p>
               </div>
             ) : (

@@ -43,7 +43,7 @@ export const RequestCard = ({ request, onSelect, onAssign, onResolve, isSelected
   return (
     <Card
       className={cn(
-        'p-4 cursor-pointer transition-all hover:shadow-md',
+        'glass-card p-4 cursor-pointer transition-all hover:shadow-2xl',
         isSelected && 'ring-2 ring-primary'
       )}
       onClick={() => onSelect(request)}

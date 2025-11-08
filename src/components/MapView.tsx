@@ -24,7 +24,7 @@ export const MapView = ({ requests, resources, selectedRequestId, onPinClick }: 
   };
 
   return (
-    <div className="relative w-full h-full bg-muted/30 rounded-lg overflow-hidden border border-border">
+    <div className="relative w-full h-full bg-gradient-to-br from-primary/5 via-transparent to-accent/5 rounded-3xl overflow-hidden border border-white/20">
       {/* Map background grid */}
       <div className="absolute inset-0 opacity-10">
         <svg width="100%" height="100%">
@@ -38,7 +38,7 @@ export const MapView = ({ requests, resources, selectedRequestId, onPinClick }: 
       </div>
 
       {/* Map label */}
-      <div className="absolute top-4 left-4 bg-card px-3 py-1 rounded-md shadow-sm border border-border z-10">
+      <div className="absolute top-4 left-4 glass-card px-4 py-2 rounded-2xl z-10">
         <p className="text-xs font-medium text-muted-foreground">San Francisco Area</p>
       </div>
 
@@ -62,7 +62,7 @@ export const MapView = ({ requests, resources, selectedRequestId, onPinClick }: 
                   <Home className="w-4 h-4" />
                 )}
               </div>
-              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-card border border-border rounded shadow-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-1.5 glass-card rounded-xl opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
                 <p className="text-xs font-medium">{resource.name}</p>
               </div>
             </div>
@@ -93,7 +93,7 @@ export const MapView = ({ requests, resources, selectedRequestId, onPinClick }: 
                   request.tone === 'Anxious' ? 'text-warning' : 'text-primary'
                 )} />
               </div>
-              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-card border border-border rounded shadow-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
+              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-1.5 glass-card rounded-xl opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
                 <p className="text-xs font-medium">{request.description}</p>
                 <p className="text-xs text-muted-foreground">{request.name || 'Anonymous'}</p>
               </div>

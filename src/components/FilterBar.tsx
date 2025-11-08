@@ -1,5 +1,6 @@
 import { Category } from '@/types/request';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 interface FilterBarProps {
   activeFilter: Category | 'All';
@@ -17,7 +18,12 @@ export const FilterBar = ({ activeFilter, onFilterChange }: FilterBarProps) => {
           variant={activeFilter === filter ? 'default' : 'outline'}
           size="sm"
           onClick={() => onFilterChange(filter)}
-          className="min-w-[70px]"
+          className={cn(
+            "min-w-[70px] rounded-2xl transition-all duration-300",
+            activeFilter === filter 
+              ? "glass-button" 
+              : "glass-card hover:shadow-lg"
+          )}
         >
           {filter}
         </Button>

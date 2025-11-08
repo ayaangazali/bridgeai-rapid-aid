@@ -8,12 +8,12 @@ interface AdminBarProps {
 
 export const AdminBar = ({ onSimulateCall, onToggleTone }: AdminBarProps) => {
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-card border-t border-border shadow-lg z-50">
-      <div className="container mx-auto px-4 py-3">
+    <div className="fixed bottom-4 left-4 right-4 glass-card shadow-2xl z-50 rounded-3xl">
+      <div className="container mx-auto px-6 py-4">
         <div className="flex items-center justify-center gap-4 flex-wrap">
           <Button
             onClick={onSimulateCall}
-            className="gap-2"
+            className="gap-2 glass-button rounded-2xl"
             variant="default"
           >
             <PhoneCall className="w-4 h-4" />
@@ -22,7 +22,7 @@ export const AdminBar = ({ onSimulateCall, onToggleTone }: AdminBarProps) => {
           <Button
             onClick={onToggleTone}
             variant="outline"
-            className="gap-2"
+            className="gap-2 glass-card hover:shadow-lg rounded-2xl"
           >
             <RotateCcw className="w-4 h-4" />
             Toggle Tone
