@@ -6,9 +6,11 @@ import { MapView } from '@/components/MapView';
 import { RequestCard } from '@/components/RequestCard';
 import { RequestDetailDrawer } from '@/components/RequestDetailDrawer';
 import { AdminBar } from '@/components/AdminBar';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Download, Search, Users, CheckCircle, Clock, AlertCircle, Settings, Bell, Filter } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 
 const Dashboard = () => {
@@ -17,12 +19,25 @@ const Dashboard = () => {
   const [activeFilter, setActiveFilter] = useState<Category | 'All'>('All');
   const [selectedRequestId, setSelectedRequestId] = useState<string | undefined>();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
-  const filteredRequests = activeFilter === 'All'
-    ? requests
-    : requests.filter(r => r.category === activeFilter);
+  const filteredRequests = requests.filter(r => {
+    const matchesCategory = activeFilter === 'All' || r.category === activeFilter;
+    const matchesSearch = searchQuery === '' || 
+      r.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      r.name?.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesCategory && matchesSearch;
+  });
 
   const selectedRequest = requests.find(r => r.id === selectedRequestId) || null;
+
+  // Calculate stats
+  const stats = {
+    total: requests.length,
+    open: requests.filter(r => r.status === 'open').length,
+    assigned: requests.filter(r => r.status === 'assigned').length,
+    resolved: requests.filter(r => r.status === 'resolved').length,
+  };
 
   const handleAssign = (id: string) => {
     setRequests(prev => prev.map(r => 
@@ -107,8 +122,8 @@ const Dashboard = () => {
 
       {/* Header */}
       <header className="glass-card mx-4 mt-4 mb-4 sticky top-4 z-40">
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center justify-between gap-4">
+        <div className="container mx-auto px-6 py-6">
+          <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-4">
               <Button
                 variant="ghost"
@@ -119,12 +134,94 @@ const Dashboard = () => {
                 <ArrowLeft className="w-4 h-4" />
                 Back
               </Button>
-              <h1 className="text-2xl font-bold text-primary">BridgeAI Dashboard</h1>
+              <div>
+                <h1 className="text-3xl font-bold text-primary">BridgeAI Dashboard</h1>
+                <p className="text-sm text-muted-foreground mt-1">Real-time support network monitoring</p>
+              </div>
             </div>
-            <FilterBar
-              activeFilter={activeFilter}
-              onFilterChange={setActiveFilter}
-            />
+            <div className="flex gap-2">
+              <Button variant="outline" size="icon" className="glass-button">
+                <Bell className="w-4 h-4" />
+              </Button>
+              <Button variant="outline" size="icon" className="glass-button">
+                <Settings className="w-4 h-4" />
+              </Button>
+              <Button className="glass-button">
+                <Download className="w-4 h-4 mr-2" />
+                Export
+              </Button>
+            </div>
+          </div>
+
+          {/* Stats Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+            <Card className="glass-card border-0">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                  <Users className="w-4 h-4" />
+                  Total Requests
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-foreground">{stats.total}</div>
+              </CardContent>
+            </Card>
+
+            <Card className="glass-card border-0">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 text-warning" />
+                  Open
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-warning">{stats.open}</div>
+              </CardContent>
+            </Card>
+
+            <Card className="glass-card border-0">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-primary" />
+                  Assigned
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-primary">{stats.assigned}</div>
+              </CardContent>
+            </Card>
+
+            <Card className="glass-card border-0">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 text-success" />
+                  Resolved
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-bold text-success">{stats.resolved}</div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Controls */}
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Search requests by description or name..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="glass-input pl-10"
+              />
+            </div>
+            <div className="flex gap-2 items-center">
+              <Filter className="w-4 h-4 text-muted-foreground" />
+              <FilterBar
+                activeFilter={activeFilter}
+                onFilterChange={setActiveFilter}
+              />
+            </div>
           </div>
         </div>
       </header>
