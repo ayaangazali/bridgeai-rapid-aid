@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import Help from "./pages/Help";
+import RequestHelp from "./pages/RequestHelp";
 import Organization from "./pages/Organization";
 import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/NotFound";
@@ -16,10 +17,11 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
+      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/help" element={<Help />} />
+          <Route path="/request-help" element={<RequestHelp />} />
           <Route path="/organization" element={<Organization />} />
           <Route path="/dashboard" element={<Dashboard />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

@@ -1,3 +1,5 @@
+@import 'leaflet/dist/leaflet.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -133,4 +135,21 @@ All colors MUST be HSL.
   .glass-button {
     @apply bg-primary/80 backdrop-blur-xl border border-white/30 shadow-lg hover:bg-primary/90 transition-all duration-300 rounded-2xl;
   }
+}
+
+/* Mapbox Popup Styling */
+.mapboxgl-popup-content {
+  padding: 0 !important;
+  border-radius: 12px !important;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2) !important;
+}
+
+.mapboxgl-popup-close-button {
+  font-size: 24px !important;
+  padding: 8px 12px !important;
+  color: #374151 !important;
+}
+
+.mapboxgl-popup-close-button:hover {
+  background-color: rgba(0, 0, 0, 0.05) !important;
 }

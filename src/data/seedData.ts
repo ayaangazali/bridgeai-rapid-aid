@@ -13,6 +13,7 @@ export const seedRequests: Request[] = [
       address: 'Mission District, SF'
     },
     name: 'Maria',
+    phone: '+14155551234',
     conversation: [
       'Hi, I\'m looking for a hot meal tonight.',
       'I can help you find nearby food banks. There\'s one on 16th Street open until 7pm.'
@@ -58,6 +59,7 @@ export const seedRequests: Request[] = [
       address: 'Tenderloin, SF'
     },
     name: 'James',
+    phone: '+14155552468',
     conversation: [
       'I need assistance filling out housing assistance forms.',
       'I can connect you with legal aid services. They have walk-in hours tomorrow.'

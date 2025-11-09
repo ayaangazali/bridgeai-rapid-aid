@@ -33,8 +33,9 @@ const statusLabels = {
 };
 
 export const RequestCard = ({ request, onSelect, onAssign, onResolve, isSelected }: RequestCardProps) => {
-  const timeAgo = (date: Date) => {
-    const minutes = Math.floor((Date.now() - date.getTime()) / 60000);
+  const timeAgo = (date: Date | string) => {
+    const timestamp = typeof date === 'string' ? new Date(date).getTime() : date.getTime();
+    const minutes = Math.floor((Date.now() - timestamp) / 60000);
     if (minutes < 60) return `${minutes}m ago`;
     const hours = Math.floor(minutes / 60);
     return `${hours}h ago`;

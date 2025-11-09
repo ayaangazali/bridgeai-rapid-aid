@@ -1,8 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Category, Request, Tone } from '@/types/request';
 import { seedRequests, seedResources } from '@/data/seedData';
 import { FilterBar } from '@/components/FilterBar';
-import { MapView } from '@/components/MapView';
+import { MapView3D } from '@/components/MapView3D';
 import { RequestCard } from '@/components/RequestCard';
 import { RequestDetailDrawer } from '@/components/RequestDetailDrawer';
 import { AdminBar } from '@/components/AdminBar';
@@ -14,14 +14,47 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { toast } from 'sonner';
 
 const Dashboard = () => {
+  console.log('Dashboard rendering...');
   const navigate = useNavigate();
-  const [requests, setRequests] = useState<Request[]>(seedRequests);
+  const [requests, setRequests] = useState<Request[]>(seedRequests || []);
+  const [resources, setResources] = useState(seedResources || []);
   const [activeFilter, setActiveFilter] = useState<Category | 'All'>('All');
   const [selectedRequestId, setSelectedRequestId] = useState<string | undefined>();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const filteredRequests = requests.filter(r => {
+  console.log('Dashboard state:', { requests: requests?.length || 0, resources: resources?.length || 0 });
+
+  // Fetch data from backend on mount
+  useEffect(() => {
+    // Fetch requests
+    fetch('http://localhost:4000/api/requests')
+      .then(res => res.json())
+      .then(data => {
+        if (data.requests && data.requests.length > 0) {
+          setRequests(data.requests);
+        }
+      })
+      .catch(err => {
+        console.error('Failed to fetch requests:', err);
+        // Keep using seed data as fallback
+      });
+
+    // Fetch resources
+    fetch('http://localhost:4000/api/resources')
+      .then(res => res.json())
+      .then(data => {
+        if (data.resources && data.resources.length > 0) {
+          setResources(data.resources);
+        }
+      })
+      .catch(err => {
+        console.error('Failed to fetch resources:', err);
+        // Keep using seed data as fallback
+      });
+  }, []);
+
+  const filteredRequests = (requests || []).filter(r => {
     const matchesCategory = activeFilter === 'All' || r.category === activeFilter;
     const matchesSearch = searchQuery === '' || 
       r.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -29,28 +62,42 @@ const Dashboard = () => {
     return matchesCategory && matchesSearch;
   });
 
-  const selectedRequest = requests.find(r => r.id === selectedRequestId) || null;
+  const selectedRequest = (requests || []).find(r => r.id === selectedRequestId) || null;
 
   // Calculate stats
   const stats = {
-    total: requests.length,
-    open: requests.filter(r => r.status === 'open').length,
-    assigned: requests.filter(r => r.status === 'assigned').length,
-    resolved: requests.filter(r => r.status === 'resolved').length,
+    total: (requests || []).length,
+    open: (requests || []).filter(r => r.status === 'open').length,
+    assigned: (requests || []).filter(r => r.status === 'assigned').length,
+    resolved: (requests || []).filter(r => r.status === 'resolved').length,
   };
 
   const handleAssign = (id: string) => {
-    setRequests(prev => prev.map(r => 
-      r.id === id ? { ...r, status: 'assigned' as const } : r
-    ));
-    toast.success('Volunteer assigned to request');
+    fetch(`http://localhost:4000/api/requests/${id}/assign`, { method: 'POST' })
+      .then(async res => {
+        if (!res.ok) throw new Error('assign failed');
+        const updated = await res.json();
+        setRequests(prev => prev.map(r => r.id === id ? updated : r));
+        toast.success('Volunteer assigned to request');
+      })
+      .catch(() => {
+        setRequests(prev => prev.map(r => r.id === id ? { ...r, status: 'assigned' as const } : r));
+        toast.success('Volunteer assigned (local)');
+      });
   };
 
   const handleResolve = (id: string) => {
-    setRequests(prev => prev.map(r => 
-      r.id === id ? { ...r, status: 'resolved' as const } : r
-    ));
-    toast.success('Request marked as resolved');
+    fetch(`http://localhost:4000/api/requests/${id}/resolve`, { method: 'POST' })
+      .then(async res => {
+        if (!res.ok) throw new Error('resolve failed');
+        const updated = await res.json();
+        setRequests(prev => prev.map(r => r.id === id ? updated : r));
+        toast.success('Request marked as resolved');
+      })
+      .catch(() => {
+        setRequests(prev => prev.map(r => r.id === id ? { ...r, status: 'resolved' as const } : r));
+        toast.success('Request marked as resolved (local)');
+      });
   };
 
   const handlePinClick = (requestId: string) => {
@@ -94,8 +141,21 @@ const Dashboard = () => {
       timestamp: new Date()
     };
 
-    setRequests(prev => [newRequest, ...prev]);
-    toast.success('New request received');
+    fetch('http://localhost:4000/api/requests', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newRequest)
+    })
+      .then(async res => {
+        if (!res.ok) throw new Error('post failed');
+        const created = await res.json();
+        setRequests(prev => [created, ...prev]);
+        toast.success('New request received');
+      })
+      .catch(() => {
+        setRequests(prev => [newRequest, ...prev]);
+        toast.success('New request received (local)');
+      });
   };
 
   const toggleTone = () => {
@@ -113,6 +173,26 @@ const Dashboard = () => {
     });
     toast.info('Tone updated for last request');
   };
+
+  useEffect(() => {
+    fetch('http://localhost:4000/api/requests')
+      .then(r => r.json())
+      .then(data => {
+        if (data && data.requests) setRequests(data.requests);
+      })
+      .catch(() => {});
+
+    fetch('http://localhost:4000/api/resources')
+      .then(r => r.json())
+      .then(data => {
+        if (data && data.resources) {
+          // replace seedResources contents in-place so MapView prop updates
+          // @ts-ignore
+          seedResources.splice(0, seedResources.length, ...data.resources);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-cyan-50 via-blue-50 to-teal-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 pb-20 relative overflow-hidden">
@@ -231,9 +311,9 @@ const Dashboard = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 h-[calc(100vh-180px)]">
           {/* Map Column */}
           <div className="h-full min-h-[400px] glass-card p-4 overflow-hidden">
-            <MapView
+            <MapView3D
               requests={filteredRequests}
-              resources={seedResources}
+              resources={resources}
               selectedRequestId={selectedRequestId}
               onPinClick={handlePinClick}
             />

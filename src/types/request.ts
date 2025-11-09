@@ -14,18 +14,22 @@ export interface Request {
     address: string;
   };
   name?: string;
+  phone?: string;
   conversation: string[];
   memory: string[];
-  timestamp: Date;
+  timestamp: Date | string;
 }
 
 export interface Resource {
   id: string;
-  type: 'food' | 'shelter';
+  type: 'food' | 'shelter' | 'legal' | 'medical';
   name: string;
   location: {
     lat: number;
     lng: number;
     address: string;
   };
+  phone?: string;
+  hours?: string;
+  services?: string[];
 }
