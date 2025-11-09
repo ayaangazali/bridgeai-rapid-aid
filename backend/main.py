@@ -18,7 +18,7 @@ load_dotenv()
 
 # Initialize FastAPI
 app = FastAPI(
-    title="BridgeAI API",
+    title="GuideMe API",
     description="AI-Powered Support Network for Homeless Assistance",
     version="1.0.0"
 )
@@ -395,7 +395,7 @@ async def root():
     """Health check endpoint"""
     return {
         "status": "online",
-        "service": "BridgeAI Backend",
+        "service": "GuideMe Backend",
         "version": "1.0.0",
         "ai_services": {
             "gemini": bool(gemini_model),
@@ -736,7 +736,7 @@ async def complete_follow_up(request_id: str, outcome: str, user_safe: bool):
 # ==================== VAPI CALL ENDPOINTS ====================
 
 # VAPI Assistant System Prompt - Empathetic Support Agent with Memory
-VAPI_SYSTEM_PROMPT = """You are a compassionate and empathetic AI assistant for BridgeAI, a service that helps people in need find immediate assistance.
+VAPI_SYSTEM_PROMPT = """You are a compassionate and empathetic AI assistant for GuideMe, a service that helps people in need find immediate assistance.
 
 **MEMORY-AWARE SUPPORT**: If you have information about this person's past interactions, preferences, or medical needs, use that context to personalize your support while being respectful of their privacy.
 
@@ -763,7 +763,7 @@ Remember:
 - If situation seems dangerous (late night, extreme weather, distressed tone), escalate urgency
 - End the call by confirming they know where to go next and when we'll follow up
 
-Start by warmly introducing yourself: "Hi, this is BridgeAI calling to help connect you with resources. Is now a good time to talk for a few minutes?"
+Start by warmly introducing yourself: "Hi, this is GuideMe calling to help connect you with resources. Is now a good time to talk for a few minutes?"
 """
 
 @app.post("/api/call/initiate")
@@ -784,9 +784,10 @@ async def initiate_call(request: CallRequest):
     
     try:
         print(f"🔥 INITIATING REAL VAPI CALL TO: {HARDCODED_NUMBER}")
-        # VAPI Phone Number ID - Updated for new account
-        VAPI_PHONE_NUMBER_ID = "b6921815-ad7f-42c8-9b5a-a6f7e6fb2c4b"  # +19459998659
+        # VAPI Phone Number ID - Get from environment variable
+        VAPI_PHONE_NUMBER_ID = os.getenv("VAPI_PHONE_NUMBER_ID")
         print(f"📞 Using VAPI phone ID: {VAPI_PHONE_NUMBER_ID}")
+        print(f"📞 Phone number: {VAPI_PHONE_NUMBER}")
         print(f"📞 Assistant ID: {os.getenv('VAPI_ASSISTANT_ID')}")
         
         async with httpx.AsyncClient() as client:
@@ -804,7 +805,7 @@ async def initiate_call(request: CallRequest):
                         "number": HARDCODED_NUMBER  # Number to call
                     },
                     "assistantOverrides": {
-                        "firstMessage": "Hi, this is BridgeAI calling to help connect you with resources. Is now a good time to talk for a few minutes?",
+                        "firstMessage": "Hi, this is GuideMe calling to help connect you with resources. Is now a good time to talk for a few minutes?",
                         "model": {
                             "provider": "openai",
                             "model": "gpt-4",
@@ -869,7 +870,7 @@ async def get_stats():
     }
 
 # Application startup
-print(f"\n🚀 BridgeAI FastAPI Backend")
+print(f"\n🚀 GuideMe FastAPI Backend")
 print(f"📊 Initial data: {len(requests_db)} requests, {len(resources_db)} resources")
 print(f"📖 API docs available at: http://localhost:4000/docs\n")
 
