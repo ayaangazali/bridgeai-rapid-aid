@@ -7,7 +7,7 @@ from fastapi import FastAPI, HTTPException, Body
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
-from datetime import datetime
+from datetime import datetime, timedelta
 import os
 from dotenv import load_dotenv
 import google.generativeai as genai
@@ -54,6 +54,37 @@ class Location(BaseModel):
     lng: float
     address: str
 
+class UserMemory(BaseModel):
+    userId: str
+    preferences: Dict[str, Any] = {}
+    medicalNeeds: List[str] = []
+    safeHours: Optional[str] = None
+    pastExperiences: List[str] = []
+    lastContact: Optional[datetime] = None
+    successfulResources: List[str] = []
+
+class SafetyScore(BaseModel):
+    requestId: str
+    score: int  # 1-5, where 5 is highest risk
+    factors: Dict[str, Any] = {}
+    timestamp: datetime
+    escalated: bool = False
+
+class VolunteerMatch(BaseModel):
+    volunteerId: str
+    requestId: str
+    status: str  # "pending", "accepted", "en-route", "completed", "declined"
+    eta: Optional[str] = None
+    assignedAt: datetime
+    acceptedAt: Optional[datetime] = None
+
+class NeedHeatmapEntry(BaseModel):
+    location: Location
+    category: str
+    timestamp: datetime
+    weather: Optional[str] = None
+    count: int = 1
+
 class Request(BaseModel):
     id: Optional[str] = None
     category: str
@@ -65,6 +96,9 @@ class Request(BaseModel):
     conversation: List[str] = []
     memory: List[str] = []
     timestamp: Optional[datetime] = None
+    safetyScore: Optional[int] = None
+    lastFollowUp: Optional[datetime] = None
+    followUpScheduled: bool = False
 
 class Resource(BaseModel):
     id: str
@@ -90,6 +124,10 @@ class CallRequest(BaseModel):
     phoneNumber: str
     tone: Optional[str] = "Calm"
 
+class FollowUpRequest(BaseModel):
+    requestId: str
+    scheduledFor: datetime
+
 # ==================== IN-MEMORY DATA STORAGE ====================
 
 requests_db: List[Dict] = [
@@ -107,9 +145,18 @@ requests_db: List[Dict] = [
         "name": "John D.",
         "conversation": ["I need help finding food"],
         "memory": ["Has children", "First time requesting"],
-        "timestamp": datetime.now().isoformat()
+        "timestamp": datetime.now().isoformat(),
+        "safetyScore": 3,
+        "followUpScheduled": False
     }
 ]
+
+# Advanced Feature Storage
+user_memory_db: Dict[str, Dict] = {}  # userId -> UserMemory
+safety_scores_db: List[Dict] = []  # List of SafetyScore entries
+volunteer_matches_db: List[Dict] = []  # List of VolunteerMatch entries
+heatmap_data_db: List[Dict] = []  # List of NeedHeatmapEntry entries
+follow_up_queue: List[Dict] = []  # List of scheduled follow-ups
 
 resources_db: List[Dict] = [
     {
@@ -259,6 +306,88 @@ Keep response under 100 words and be supportive.'''
         print(f"Gemini response generation error: {e}")
         return "I'm here to help you. What do you need assistance with?"
 
+# ==================== ADVANCED FEATURE HELPERS ====================
+
+def calculate_safety_score(request: Dict, weather: Optional[str] = None) -> int:
+    """Calculate safety score (1-5) based on multiple factors"""
+    score = 1
+    
+    # Factor 1: Tone (Distressed = +2, Anxious = +1)
+    if request.get("tone") == "Distressed":
+        score += 2
+    elif request.get("tone") == "Anxious":
+        score += 1
+    
+    # Factor 2: Time of day (night = +1)
+    current_hour = datetime.now().hour
+    if current_hour < 6 or current_hour > 22:
+        score += 1
+    
+    # Factor 3: Weather (extreme conditions = +1)
+    if weather and weather.lower() in ["storm", "extreme cold", "extreme heat"]:
+        score += 1
+    
+    # Factor 4: Inactivity (no response in 24h = +1)
+    if request.get("timestamp"):
+        last_contact = datetime.fromisoformat(request["timestamp"]) if isinstance(request["timestamp"], str) else request["timestamp"]
+        if (datetime.now() - last_contact).total_seconds() > 86400:  # 24 hours
+            score += 1
+    
+    return min(score, 5)  # Cap at 5
+
+def update_user_memory(user_id: str, new_data: Dict):
+    """Update memory engine for a user"""
+    if user_id not in user_memory_db:
+        user_memory_db[user_id] = {
+            "userId": user_id,
+            "preferences": {},
+            "medicalNeeds": [],
+            "safeHours": None,
+            "pastExperiences": [],
+            "lastContact": datetime.now().isoformat(),
+            "successfulResources": []
+        }
+    
+    memory = user_memory_db[user_id]
+    
+    # Update fields
+    if "preferences" in new_data:
+        memory["preferences"].update(new_data["preferences"])
+    if "medicalNeeds" in new_data:
+        memory["medicalNeeds"].extend(new_data["medicalNeeds"])
+        memory["medicalNeeds"] = list(set(memory["medicalNeeds"]))  # Remove duplicates
+    if "safeHours" in new_data:
+        memory["safeHours"] = new_data["safeHours"]
+    if "experience" in new_data:
+        memory["pastExperiences"].append(new_data["experience"])
+    if "successfulResource" in new_data:
+        memory["successfulResources"].append(new_data["successfulResource"])
+    
+    memory["lastContact"] = datetime.now().isoformat()
+    
+    print(f"✅ Memory updated for user {user_id}")
+
+def log_heatmap_data(location: Location, category: str, weather: Optional[str] = None):
+    """Log anonymous data for need heatmaps"""
+    heatmap_data_db.append({
+        "location": location.dict(),
+        "category": category,
+        "timestamp": datetime.now().isoformat(),
+        "weather": weather,
+        "count": 1
+    })
+    print(f"📊 Heatmap data logged: {category} at {location.address}")
+
+async def schedule_follow_up_call(request_id: str, hours_delay: int = 24):
+    """Schedule a follow-up call for 24-48 hours later"""
+    scheduled_time = datetime.now() + timedelta(hours=hours_delay)
+    follow_up_queue.append({
+        "requestId": request_id,
+        "scheduledFor": scheduled_time.isoformat(),
+        "status": "pending"
+    })
+    print(f"📞 Follow-up call scheduled for request {request_id} at {scheduled_time}")
+
 # ==================== API ENDPOINTS ====================
 
 @app.get("/")
@@ -403,7 +532,7 @@ async def get_requests():
 
 @app.post("/api/requests")
 async def create_request(request: Request):
-    """Create new help request"""
+    """Create new help request with advanced features"""
     
     # Auto-detect tone if not provided
     if request.description and gemini_model:
@@ -417,7 +546,29 @@ async def create_request(request: Request):
     # Convert to dict and add to database
     request_dict = request.model_dump()
     request_dict["timestamp"] = request.timestamp.isoformat()
+    
+    # Calculate safety score
+    safety_score = calculate_safety_score(request_dict)
+    request_dict["safetyScore"] = safety_score
+    request_dict["followUpScheduled"] = False
+    
+    # Log to heatmap (anonymous)
+    log_heatmap_data(request.location, request.category)
+    
+    # Auto-escalate if high risk
+    if safety_score >= 4:
+        request_dict["status"] = "urgent"
+        print(f"🚨 HIGH RISK REQUEST: {request.id} scored {safety_score}/5")
+    
     requests_db.insert(0, request_dict)
+    
+    # Update user memory if not anonymous
+    if request.name and request.name != "Anonymous":
+        user_id = request.name.lower().replace(" ", "_")
+        update_user_memory(user_id, {
+            "experience": f"Requested {request.category} assistance",
+            "preferences": {"category": request.category}
+        })
     
     return request_dict
 
@@ -441,31 +592,176 @@ async def resolve_request(request_id: str):
         raise HTTPException(status_code=404, detail="Request not found")
     
     request["status"] = "resolved"
+    
+    # Schedule follow-up call 24-48 hours later
+    await schedule_follow_up_call(request_id, hours_delay=24)
+    request["followUpScheduled"] = True
+    
     return request
+
+# ==================== ADVANCED FEATURE ENDPOINTS ====================
+
+@app.post("/api/memory/{user_id}")
+async def update_memory(user_id: str, data: Dict[str, Any]):
+    """Update memory engine for a user"""
+    update_user_memory(user_id, data)
+    return {"success": True, "memory": user_memory_db.get(user_id, {})}
+
+@app.get("/api/memory/{user_id}")
+async def get_memory(user_id: str):
+    """Get memory for a user"""
+    if user_id not in user_memory_db:
+        raise HTTPException(status_code=404, detail="User memory not found")
+    return user_memory_db[user_id]
+
+@app.post("/api/safety-score/{request_id}")
+async def calculate_and_store_safety_score(request_id: str, weather: Optional[str] = None):
+    """Calculate and store safety score for a request"""
+    request = next((r for r in requests_db if r["id"] == request_id), None)
+    
+    if not request:
+        raise HTTPException(status_code=404, detail="Request not found")
+    
+    score = calculate_safety_score(request, weather)
+    
+    safety_entry = {
+        "requestId": request_id,
+        "score": score,
+        "factors": {
+            "tone": request.get("tone"),
+            "time": datetime.now().hour,
+            "weather": weather,
+            "location": request.get("location", {}).get("address")
+        },
+        "timestamp": datetime.now().isoformat(),
+        "escalated": score >= 4
+    }
+    
+    safety_scores_db.append(safety_entry)
+    request["safetyScore"] = score
+    
+    # Auto-escalate if score is 4 or 5
+    if score >= 4:
+        print(f"🚨 HIGH RISK: Request {request_id} scored {score}/5 - ESCALATING")
+        request["status"] = "urgent"
+    
+    return safety_entry
+
+@app.get("/api/safety-scores")
+async def get_safety_scores():
+    """Get all safety scores"""
+    return {"safetyScores": safety_scores_db}
+
+@app.post("/api/volunteer/match")
+async def create_volunteer_match(request_id: str, volunteer_id: str):
+    """Create a volunteer match for an urgent request"""
+    request = next((r for r in requests_db if r["id"] == request_id), None)
+    
+    if not request:
+        raise HTTPException(status_code=404, detail="Request not found")
+    
+    match = {
+        "volunteerId": volunteer_id,
+        "requestId": request_id,
+        "status": "pending",
+        "eta": None,
+        "assignedAt": datetime.now().isoformat(),
+        "acceptedAt": None
+    }
+    
+    volunteer_matches_db.append(match)
+    print(f"🤝 Volunteer {volunteer_id} matched with request {request_id}")
+    
+    return match
+
+@app.post("/api/volunteer/match/{match_id}/accept")
+async def accept_volunteer_match(match_id: int, eta: str):
+    """Volunteer accepts a match"""
+    if match_id >= len(volunteer_matches_db):
+        raise HTTPException(status_code=404, detail="Match not found")
+    
+    match = volunteer_matches_db[match_id]
+    match["status"] = "accepted"
+    match["acceptedAt"] = datetime.now().isoformat()
+    match["eta"] = eta
+    
+    return match
+
+@app.get("/api/volunteer/matches")
+async def get_volunteer_matches():
+    """Get all volunteer matches"""
+    return {"matches": volunteer_matches_db}
+
+@app.post("/api/heatmap/log")
+async def log_heatmap(location: Location, category: str, weather: Optional[str] = None):
+    """Log data for need heatmaps"""
+    log_heatmap_data(location, category, weather)
+    return {"success": True}
+
+@app.get("/api/heatmap")
+async def get_heatmap():
+    """Get heatmap data"""
+    return {"heatmapData": heatmap_data_db}
+
+@app.get("/api/follow-ups")
+async def get_follow_up_queue():
+    """Get scheduled follow-up calls"""
+    return {"followUps": follow_up_queue}
+
+@app.post("/api/follow-ups/{request_id}/complete")
+async def complete_follow_up(request_id: str, outcome: str, user_safe: bool):
+    """Mark follow-up as complete and update memory"""
+    follow_up = next((f for f in follow_up_queue if f["requestId"] == request_id), None)
+    
+    if not follow_up:
+        raise HTTPException(status_code=404, detail="Follow-up not found")
+    
+    follow_up["status"] = "completed"
+    follow_up["outcome"] = outcome
+    follow_up["completedAt"] = datetime.now().isoformat()
+    
+    # Update request
+    request = next((r for r in requests_db if r["id"] == request_id), None)
+    if request:
+        request["lastFollowUp"] = datetime.now().isoformat()
+        
+        # Escalate if user is not safe
+        if not user_safe:
+            print(f"🚨 FOLLOW-UP ESCALATION: User from request {request_id} is not safe!")
+            request["status"] = "urgent"
+            request["safetyScore"] = 5
+    
+    return {"success": True, "followUp": follow_up}
 
 # ==================== VAPI CALL ENDPOINTS ====================
 
-# VAPI Assistant System Prompt - Empathetic Support Agent
+# VAPI Assistant System Prompt - Empathetic Support Agent with Memory
 VAPI_SYSTEM_PROMPT = """You are a compassionate and empathetic AI assistant for BridgeAI, a service that helps people in need find immediate assistance.
+
+**MEMORY-AWARE SUPPORT**: If you have information about this person's past interactions, preferences, or medical needs, use that context to personalize your support while being respectful of their privacy.
 
 Your role is to:
 1. **Be warm, caring, and non-judgmental** - Many people you call are in vulnerable situations
-2. **Understand their immediate needs** - Ask what kind of help they need: shelter, food, or other resources
-3. **Get their location** - Politely ask where they are currently located (city, neighborhood, or cross streets)
-4. **Provide specific, actionable recommendations** based on their location:
+2. **Remember and reference past interactions** - If they've contacted us before, acknowledge that and ask how things went with previous help
+3. **Understand their immediate needs** - Ask what kind of help they need: shelter, food, or other resources
+4. **Get their location** - Politely ask where they are currently located (city, neighborhood, or cross streets)
+5. **Assess safety level** - Pay attention to time of day, weather, and their emotional state to determine urgency
+6. **Provide specific, actionable recommendations** based on their location:
    - For FOOD: Recommend nearby food banks, soup kitchens, community meals, or food pantries
    - For SHELTER: Suggest emergency shelters, warming centers, or safe places they can go
    - For RESOURCES: Direct them to government assistance, health services, legal aid, or social services
-5. **Give clear directions** - Provide addresses, phone numbers, and simple walking/transit directions
-6. **Offer hope and support** - Remind them that help is available and they're not alone
-7. **Keep the conversation brief** but thorough - They may have limited phone battery or minutes
+7. **Give clear directions** - Provide addresses, phone numbers, and simple walking/transit directions
+8. **Offer hope and support** - Remind them that help is available and they're not alone
+9. **Keep the conversation brief** but thorough - They may have limited phone battery or minutes
+10. **Learn for next time** - Note any preferences they share (e.g., "I don't like crowded shelters", "I need vegetarian food")
 
 Remember:
 - Use simple, clear language
 - Be patient if they seem confused or upset
 - Never make promises you can't keep
 - Focus on immediate, practical help
-- End the call by confirming they know where to go next
+- If situation seems dangerous (late night, extreme weather, distressed tone), escalate urgency
+- End the call by confirming they know where to go next and when we'll follow up
 
 Start by warmly introducing yourself: "Hi, this is BridgeAI calling to help connect you with resources. Is now a good time to talk for a few minutes?"
 """
@@ -488,9 +784,10 @@ async def initiate_call(request: CallRequest):
     
     try:
         print(f"🔥 INITIATING REAL VAPI CALL TO: {HARDCODED_NUMBER}")
-        # VAPI Phone Number ID (retrieved from VAPI API)
-        VAPI_PHONE_NUMBER_ID = "41a48de3-d5d9-47f1-adb1-08bffa234b26"
+        # VAPI Phone Number ID - Updated for new account
+        VAPI_PHONE_NUMBER_ID = "b6921815-ad7f-42c8-9b5a-a6f7e6fb2c4b"  # +19459998659
         print(f"📞 Using VAPI phone ID: {VAPI_PHONE_NUMBER_ID}")
+        print(f"📞 Assistant ID: {os.getenv('VAPI_ASSISTANT_ID')}")
         
         async with httpx.AsyncClient() as client:
             # CORRECT VAPI format according to their API
