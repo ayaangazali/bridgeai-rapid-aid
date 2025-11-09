@@ -872,3 +872,8 @@ async def get_stats():
 print(f"\n🚀 BridgeAI FastAPI Backend")
 print(f"📊 Initial data: {len(requests_db)} requests, {len(resources_db)} resources")
 print(f"📖 API docs available at: http://localhost:4000/docs\n")
+
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=4000)

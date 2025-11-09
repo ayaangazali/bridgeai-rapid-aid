@@ -57,6 +57,19 @@ export const RequestCard = ({ request, onSelect, onAssign, onResolve, isSelected
           <Badge variant="outline" className="capitalize">
             {statusLabels[request.status]}
           </Badge>
+          {(request as any).safetyScore && (
+            <Badge 
+              variant="outline"
+              className={cn(
+                'font-bold',
+                (request as any).safetyScore >= 4 ? 'bg-red-500/20 text-red-500 border-red-500' :
+                (request as any).safetyScore >= 3 ? 'bg-yellow-500/20 text-yellow-500 border-yellow-500' :
+                'bg-green-500/20 text-green-500 border-green-500'
+              )}
+            >
+              🚨 {(request as any).safetyScore}/5
+            </Badge>
+          )}
         </div>
         <span className="text-xs text-muted-foreground flex items-center gap-1">
           <Clock className="w-3 h-3" />
