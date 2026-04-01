@@ -121,7 +121,7 @@ Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/c
 
 This repository includes a minimal Express backend used by the Dashboard during development.
 
-- Start the backend:
+Start the backend:
 
 ```bash
 cd backend
