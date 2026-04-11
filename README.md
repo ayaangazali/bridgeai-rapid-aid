@@ -140,6 +140,6 @@ npm run dev
 Next steps you might want to add:
 
 - Persist data with MongoDB (already included as a dependency in `backend/package.json`)
-- Add Socket.IO client in the frontend to receive realtime updates
-- Add authentication for volunteers and organizations
+- Add Socket.IO client in the frontend to receive realtime updates.
+- Add authentication for volunteers and organizations.
 
