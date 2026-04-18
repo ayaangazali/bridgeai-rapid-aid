@@ -2,7 +2,7 @@
 
 AI-Powered platform connecting homeless individuals with essential resources and services in San Francisco.
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Backend (FastAPI)
 ```bash
