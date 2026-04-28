@@ -137,7 +137,7 @@ npm run dev
 - POST /api/requests/:id/resolve — mark request resolved
 - GET /api/resources — returns { resources: [...] }
 
-Next steps you might want to add::
+Next steps you might want to add:
 
 - Persist data with MongoDB (already included as a dependency in `backend/package.json`)
 - Add Socket.IO client in the frontend to receive realtime updates.
